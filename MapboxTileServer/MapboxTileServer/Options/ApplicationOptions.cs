@@ -1,0 +1,19 @@
+﻿// Copyright (c) Philipp Wagner. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+using System.Collections.Generic;
+
+namespace MapboxTileServer.Options
+{
+    public class Tileset
+    {
+        public string Filename { get; set; }
+
+        public string ContentType { get; set; }
+    }
+
+    public class ApplicationOptions
+    {
+        public IDictionary<string, Tileset> Tilesets { get; set; }
+    }
+}

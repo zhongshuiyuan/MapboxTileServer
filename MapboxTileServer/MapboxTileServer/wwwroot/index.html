@@ -1,0 +1,95 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Mapbox GL</title>
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+    <script src="https://api.mapbox.com/mapbox-gl-js/v0.40.1/mapbox-gl.js"></script>
+    <link href="https://api.mapbox.com/mapbox-gl-js/v0.40.1/mapbox-gl.css" rel="stylesheet" />
+    <style>
+        #map {
+            height: 100vh;
+        }
+
+            #map canvas {
+                cursor: crosshair;
+            }
+
+        #heading {
+            font-family: 'Montserrat', sans-serif;
+            color: rgb(255, 255, 255);
+            background: rgb(40, 40, 40);
+            position: fixed;
+            top: 0px;
+            left: 0px;
+            bottom: 0px;
+            padding: 30px;
+            width: 450px;
+            overflow: auto;
+            z-index: 9;
+        }
+
+        h1 {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        pre {
+            font-family: 'Roboto Mono', monospace;
+        }
+
+        a, a:hover, a:visited {
+            color: rgb(229, 235, 247);
+        }
+    </style>
+</head>
+<body style="margin: 0">
+    <div id="map"></div>
+    <div id="heading">
+        <h1>MapboxTileserver</h1>
+        <p>
+           Click on the map to get the metadata associated with a Mapbox Vector Tile. You can learn about the Vector Tile Specification <a href="https://docs.mapbox.com/vector-tiles/specification/">here</a>.
+        </p>
+        <pre id='features'>
+Select a feature on the map
+to display its metadata.
+  </pre>
+    </div>
+    <script>
+        // Initialize the map
+        var map = new mapboxgl.Map({
+            container: 'map',
+            style: 'http://localhost:9000/static/style/osm_liberty/osm_liberty.json',
+            center: [7.628202, 51.961563],
+            zoom: 14
+        });
+
+        // Recenter the map according to the location saved in the url
+        if (location.hash) {
+            let arr = location.hash.substr(1).split("/");
+            let zoom = parseFloat(arr[0]);
+            let lng = parseFloat(arr[1]);
+            let lat = parseFloat(arr[2]);
+            let bearing = parseFloat(arr[3]);
+            let pitch = parseFloat(arr[4]);
+            map.setZoom(zoom);
+            map.setCenter([lng, lat]);
+            map.setBearing(bearing);
+            map.setPitch(pitch);
+        }
+
+        // Changes the hash of the url when the location changes
+        map.on('moveend', ev => {
+            location.hash = "#" + map.getZoom() + "/" + map.getCenter().lng + "/" + map.getCenter().lat + "/" + map.getBearing() + "/" + map.getPitch();
+        });
+
+        map.on('click', function (e) {
+            var features = map.queryRenderedFeatures(e.point);
+
+            document.getElementById('features').innerHTML = JSON.stringify(features.map(f => f.properties), null, 2);
+        });
+
+    </script>
+</body>
+</html>
