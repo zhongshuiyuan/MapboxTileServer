@@ -5,12 +5,6 @@ using System.Collections.Generic;
 
 namespace MapboxTileServer.Options
 {
-    public class Tileset
-    {
-        public string Filename { get; set; }
-
-        public string ContentType { get; set; }
-    }
 
     public class ApplicationOptions
     {

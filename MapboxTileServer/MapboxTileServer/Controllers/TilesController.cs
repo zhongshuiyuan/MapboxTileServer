@@ -27,8 +27,12 @@ namespace MapboxTileServer.Controllers
         [Route("/tiles/{tileset}/{z}/{x}/{y}")]
         public ActionResult Get([FromRoute(Name = "tileset")] string tiles, [FromRoute(Name = "z")] int z, [FromRoute(Name = "x")] int x, [FromRoute(Name = "y")] int y)
         {
+            logger.LogDebug($"Requesting Tiles (tileset = {tiles}, z = {z}, x = {x}, y = {y})");
+ 
             if(!applicationOptions.Tilesets.TryGetValue(tiles, out Tileset tileset))
             {
+                logger.LogWarning($"No Tileset available for Tileset '{tiles}'");
+
                 return BadRequest();
             }
 
@@ -39,6 +43,8 @@ namespace MapboxTileServer.Controllers
                 return Accepted();
             }
 
+            // Mapbox Vector Tiles are already compressed, so we need to tell 
+            // the client we are sending gzip Content:
             if (tileset.ContentType == Constants.MimeTypes.ApplicationMapboxVectorTile)
             {
                 Response.Headers.Add("Content-Encoding", "gzip");
