@@ -24,8 +24,8 @@ tile server we are going to write. The end result will display the tiles from [O
 on a website:
 
 <div style="display:flex; align-items:center; justify-content:center;">
-    <a href="/static/images/blog/mapboxtileserver_csharp/MapboxTileServer.png">
-        <img src="/static/images/blog/mapboxtileserver_csharp/MapboxTileServer.png">
+    <a href="https://bytefish.de/static/images/blog/mapboxtileserver_csharp/MapboxTileServer.png">
+        <img src="https://bytefish.de/static/images/blog/mapboxtileserver_csharp/MapboxTileServer.png">
     </a>
 </div>
 
