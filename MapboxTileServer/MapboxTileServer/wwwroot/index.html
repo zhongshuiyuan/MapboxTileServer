@@ -73,14 +73,43 @@ to display its metadata.
     </div>
     <script>
 
+        // https://stackoverflow.com/questions/14446511/most-efficient-method-to-groupby-on-an-array-of-objects
+        function groupBy(list, keyGetter) {
+            const map = new Map();
+            list.forEach((item) => {
+                const key = keyGetter(item);
+                const collection = map.get(key);
+                if (!collection) {
+                    map.set(key, [item]);
+                } else {
+                    collection.push(item);
+                }
+            });
+            return map;
+        }
+
         // Formats an OSM feature from the Search results:
         var formatOsmFeature = function (feature) {
             var components = [];
 
-            components.push(feature.properties.name);
+            if (feature.properties.name) {
+                components.push(feature.properties.name);
+            }
 
-            if (feature.properties.city && feature.properties.city !== feature.properties.name) {
-                components.push(feature.properties.city);
+            if (feature.properties.street && feature.properties.housenumber) {
+                components.push(`${feature.properties.street} ${feature.properties.housenumber}`);
+            }
+
+            if (feature.properties.street && !feature.properties.housenumber) {
+                components.push(feature.properties.street);
+            }
+
+            if (!feature.properties.postcode && feature.properties.city) {
+                components.push(`${feature.properties.city}`)
+            }
+
+            if (feature.properties.postcode && feature.properties.city) {
+                components.push(`${feature.properties.postcode} ${feature.properties.city}`)
             }
 
             if (feature.properties.country) {
@@ -119,19 +148,29 @@ to display its metadata.
         autocomplete({
             input: input,
             fetch: async function (query, update) {
+                // Query the Search Service:
                 const source = await fetch(`http://localhost:9000/search?q=${query}`);
 
+                // Get the GeoJSON in it:
                 const data = await source.json();
 
+                // If there is no data at all, we can stop:
                 if (!data) {
                     return;
                 }
 
+                // If there are no features at all, we can stop:
                 if (!data.features) {
                     return;
                 }
 
-                update(data.features);
+                // Now group by the Autocomplete Text, because we want to avoid duplicates:
+                const grouped_features = groupBy(data.features, x => formatOsmFeature(x))
+                
+                // Only take the first item from each group:
+                const distinct_features = Array.from(grouped_features, ([key, value]) => value[0]);
+
+                update(distinct_features );
             },
             render: function (item, value) {
                 const itemElement = document.createElement("div");
