@@ -109,7 +109,7 @@ According to the documentation Photon is ...
 
 You can find the GitHub repositories at:
 
-* [https://github.com/komoot/photon]([https://github.com/komoot/photon)
+* [https://github.com/komoot/photon](https://github.com/komoot/photon)
 
 ### Getting the Search Index Data for Photon ###
 
