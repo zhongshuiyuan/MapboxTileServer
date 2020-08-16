@@ -1,6 +1,7 @@
 // Copyright (c) Philipp Wagner. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using MapboxTileServer.Clients;
 using MapboxTileServer.Options;
 using MapboxTileServer.Services;
 using Microsoft.AspNetCore.Builder;
@@ -53,6 +54,7 @@ namespace MapboxTileServer
 
         private void RegisterApplicationServices(IServiceCollection services)
         {
+            services.AddSingleton<PhotonSearchClient>();
             services.AddSingleton<IMapboxTileService, MapboxTileService>();
         }
 

@@ -8,6 +8,8 @@ namespace MapboxTileServer.Options
 
     public class ApplicationOptions
     {
+        public PhotonSettings Photon { get; set; }
+
         public IDictionary<string, Tileset> Tilesets { get; set; }
     }
 }

@@ -4,8 +4,13 @@
     <meta charset="utf-8" />
     <title>.NET Mapbox Tile Server</title>
     <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
-    <script src="https://api.mapbox.com/mapbox-gl-js/v1.12.0/mapbox-gl.js"></script>
-    <link href="https://api.mapbox.com/mapbox-gl-js/v1.12.0/mapbox-gl.css" rel="stylesheet" />
+
+    <script src="https://api.mapbox.com/mapbox-gl-js/v1.10.0/mapbox-gl.js"></script>
+    <link href="https://api.mapbox.com/mapbox-gl-js/v1.10.0/mapbox-gl.css" rel="stylesheet" />
+
+    <script src="/static/js/autocomplete.js"></script>
+    <link href="/static/css/autocomplete.css" rel="stylesheet" />
+
     <style>
         #map {
             height: 100vh;
@@ -29,6 +34,10 @@
             z-index: 9;
         }
 
+        #autocomplete {
+            width: 100%;
+        }
+
         h1 {
             font-family: 'Roboto', sans-serif;
             margin: 0;
@@ -49,6 +58,12 @@
     <div id="heading">
         <h1>MapboxTileserver</h1>
         <p>
+            The example project shows how to integrate Photon for searching the map.
+        </p>
+
+        <input id="autocomplete" type="text" placeholder="Search ...">
+
+        <p>
             Click on the map to get the metadata associated with a Mapbox Vector Tile. You can learn about the Vector Tile Specification <a href="https://docs.mapbox.com/vector-tiles/specification/">here</a>.
         </p>
         <pre id='features'>
@@ -57,31 +72,39 @@ to display its metadata.
   </pre>
     </div>
     <script>
-        // Initialize the map
+
+        // Formats an OSM feature from the Search results:
+        var formatOsmFeature = function (feature) {
+            var components = [];
+
+            components.push(feature.properties.name);
+
+            if (feature.properties.city && feature.properties.city !== feature.properties.name) {
+                components.push(feature.properties.city);
+            }
+
+            if (feature.properties.country) {
+                components.push(feature.properties.country);
+            }
+
+            return components.join(', ');
+        };
+
+        // Sets a Marker for specified coordinates and moves to it:
+        var setMapLocation = function (map, coordinates) {
+            var marker = new mapboxgl.Marker()
+                .setLngLat(coordinates)
+                .addTo(map);
+
+            map.jumpTo({ center: coordinates });
+        }
+
+        // Now add Mapbox GL JS:
         var map = new mapboxgl.Map({
             container: 'map',
             style: 'http://localhost:9000/static/style/osm_liberty/osm_liberty.json',
             center: [7.628202, 51.961563],
             zoom: 14
-        });
-
-        // Recenter the map according to the location saved in the url
-        if (location.hash) {
-            let arr = location.hash.substr(1).split("/");
-            let zoom = parseFloat(arr[0]);
-            let lng = parseFloat(arr[1]);
-            let lat = parseFloat(arr[2]);
-            let bearing = parseFloat(arr[3]);
-            let pitch = parseFloat(arr[4]);
-            map.setZoom(zoom);
-            map.setCenter([lng, lat]);
-            map.setBearing(bearing);
-            map.setPitch(pitch);
-        }
-
-        // Changes the hash of the url when the location changes
-        map.on('moveend', ev => {
-            location.hash = "#" + map.getZoom() + "/" + map.getCenter().lng + "/" + map.getCenter().lat + "/" + map.getBearing() + "/" + map.getPitch();
         });
 
         map.on('click', function (e) {
@@ -90,6 +113,38 @@ to display its metadata.
             document.getElementById('features').innerHTML = JSON.stringify(features.map(f => f.properties), null, 2);
         });
 
+        // Add Autocomplete Functionality:
+        var input = document.getElementById("autocomplete");
+
+        autocomplete({
+            input: input,
+            fetch: async function (query, update) {
+                const source = await fetch(`http://localhost:9000/search?q=${query}`);
+
+                const data = await source.json();
+
+                if (!data) {
+                    return;
+                }
+
+                if (!data.features) {
+                    return;
+                }
+
+                update(data.features);
+            },
+            render: function (item, value) {
+                const itemElement = document.createElement("div");
+                itemElement.textContent = formatOsmFeature(item);
+                return itemElement;
+                
+            },
+            onSelect: function (item) {
+                input.value = formatOsmFeature(item);
+                console.log(item.geometry.coordinates);
+                setMapLocation(map, item.geometry.coordinates);
+            }
+        });
     </script>
 </body>
 </html>
