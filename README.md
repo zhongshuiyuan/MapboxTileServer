@@ -17,17 +17,24 @@ it to use the pre-built [OpenMapTiles]:
 [Bertil]: https://www.bertil.ch/
 [baremaps]: https://github.com/baremaps/baremaps
 
-## What we are going to build ##
+## Description ##
 
-In this project you will see how to acquire the data to serve tiles locally using a simple 
-tile server we are going to write. The end result will display the tiles from [OpenMapTiles] 
-on a website:
+This project implements a Tile Server in .NET for serving pre-built [OpenMapTiles]. It also integrates [Photon] to provide 
+Geocoding features. The ASP.NET Core Server also includes a small Frontend to display a map and geocode results, so you get 
+an idea *where to start*.
 
 <div style="display:flex; align-items:center; justify-content:center;">
-    <a href="https://bytefish.de/static/images/blog/mapboxtileserver_csharp/MapboxTileServer.png">
-        <img src="https://bytefish.de/static/images/blog/mapboxtileserver_csharp/MapboxTileServer.png">
+    <a href="https://bytefish.de/static/images/blog/mapboxtileserver_geocoding/MapboxTileServerGeocodingExample.png">
+        <img src="https://bytefish.de/static/images/blog/mapboxtileserver_geocoding/MapboxTileServerGeocodingExample.png">
     </a>
 </div>
+
+The following articles describe the implementation in detail:
+
+* [https://bytefish.de/blog/mapboxtileserver_csharp/](https://bytefish.de/blog/mapboxtileserver_csharp/)
+* [https://bytefish.de/blog/mapboxtileserver_geocoding/](https://bytefish.de/blog/mapboxtileserver_geocoding/)
+
+[Photon]: https://photon.komoot.de/
 
 ## Getting the Data ##
 
@@ -89,466 +96,75 @@ The Tiles can be downloaded from:
 
 In the example I am going to use "Natural Earth II with Shaded Relief" Raster tiles.
 
-## Writing a Tileserver ##
 
-### ApplicationOptions ###
+## Photon ##
 
-We probably need to serve multiple tilesets with different MIME Types, think of Vector and Raster tiles. That's 
-why we are first creating a class ``Tileset``, that's going to hold the information:
+According to the documentation Photon is ...
 
-```csharp
-// Copyright (c) Philipp Wagner. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+> [...] an open source geocoder built for [OpenStreetMap] data. It is based on [elasticsearch] - an efficient, powerful and highly 
+> scalable search platform.
+>
+> Photon was started by [komoot] and provides search-as-you-type and multilingual support. It's used in production with thousands 
+> of requests per minute at [www.komoot.de]. Find our public API and demo on [photon.komoot.de].
 
-namespace MapboxTileServer.Options
-{
-    public class Tileset
-    {
-        /// <summary>
-        /// Path to the Dataset.
-        /// </summary>
-        public string Filename { get; set; }
+You can find the GitHub repositories at:
 
-        /// <summary>
-        /// The Content-Type to be served.
-        /// </summary>
-        public string ContentType { get; set; }
-    }
-}
+* [https://github.com/komoot/photon]([https://github.com/komoot/photon)
+
+### Getting the Search Index Data for Photon ###
+
+Photon requires an elasticsearch index. This index can be built by using the Photon CLI to import the data 
+from [Nomatim], but there is a much simpler way.
+
+The kind people of [GraphHopper] and user [@ionvia] provide a download of the Photon elasticsearch index. The index 
+is built each week, so it contains recent additions to the [OpenStreetMap] data. 
+
+The archive ``photon-db-latest.tar.bz2`` always contains the latest build and can be downloaded from:
+
+* [http://download1.graphhopper.com/public/](http://download1.graphhopper.com/public/)
+
+If you are using a Unix system you can also run the following command to download and extract the latest search index:
+
+```bash
+wget -O - http://download1.graphhopper.com/public/photon-db-latest.tar.bz2 | bzip2 -cd | tar x
 ```
 
-Every Tileset is going to be accessed by a name, which will be passed from the Frontend to the Backend. So 
-we are going to store the Tilesets in an ``IDictionary<string, Tileset>`` to provide fast lookups:
+### Getting Photon Up and Running ###
 
-```csharp
-// Copyright (c) Philipp Wagner. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+When you have downloaded an extracted the data, you start with getting the latest JAR file from the Photon 
+releases. As of writing this is 0.3.3:
 
-using System.Collections.Generic;
+* [https://github.com/komoot/photon/releases/tag/0.3.3](https://github.com/komoot/photon/releases/tag/0.3.3)
 
-namespace MapboxTileServer.Options
-{
+What I do now is writing a simple Batch Script to set the Java executable, the JAR file and the Data Directory, which 
+contains the Search index you have just downloaded and extracted:
 
-    public class ApplicationOptions
-    {
-        public IDictionary<string, Tileset> Tilesets { get; set; }
-    }
-}
+```batch
+@echo off
+
+:: Copyright (c) Philipp Wagner. All rights reserved.
+:: Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+set JAVA_EXE="G:\Applications\Oracle\jdk-14.0.1\bin\java.exe"
+set PHOTON_JAR="G:\Applications\Photon\photon-0.3.3.jar"
+set DATA_DIR="G:\Data\Photon\photon-db-de-200809"
+
+%JAVA_EXE% -jar %PHOTON_JAR% -data-dir %DATA_DIR% -listen-ip 0.0.0.0 -listen-port 2322 -cors-any
+
+pause
 ```
 
-This enables us to define the ``openmaptiles`` and ``natural_earth`` layer from the previous section. We are 
-adding a section ``Application``, which will be bound to the ``ApplicationOptions`` using the [Options Pattern] 
-of .NET Core.
+Now if you execute the Script, you should give elasticsearch some seconds to load the index and... that's it!
 
-```json
-{
-  "Logging": {
-    "LogLevel": {
-      "Default": "Information",
-      "Microsoft": "Warning",
-      "Microsoft.Hosting.Lifetime": "Information"
-    }
-  },
-  "Application": {
-    "Tilesets": {
-      "openmaptiles": {
-        "Filename": "G:\\Tiles\\2017-07-03_europe_germany.mbtiles",
-        "ContentType": "application/vnd.mapbox-vector-tile"
-      },
-      "natural_earth_2_shaded_relief.raster": {
-        "Filename": "G:\\Tiles\\natural_earth_2_shaded_relief.raster.mbtiles",
-        "ContentType": "image/png"
-      }
-    }
-  },
-  "AllowedHosts": "*"
-}
-```
-
-[Options Pattern]: https://docs.microsoft.com/en-us/aspnet/core/fundamentals/configuration/options?view=aspnetcore-3.1
-
-### MapboxTileService: Reading the Tiles ###
-
-The tiles are stored in the [Vector tile specification] format suggested by Mapbox. One of the most common implementations is 
-the MBTiles format. According to the OpenStreetMap Wiki MBTiles ... 
-
-> [...] is a file format for storing map tiles in a single file. It is, technically, a SQLite database.
-
-So we are going to add the ``Microsoft.Data.Sqlite`` packages for accessing SQLite Databases and write a small ``MapboxTileService`` 
-to read the data off of it. Please look into the [MBTiles Specification] for further information on how to access data.
-
-```csharp
-// Copyright (c) Philipp Wagner. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
-
-using MapboxTileServer.Options;
-using Microsoft.Data.Sqlite;
-using System;
-using System.IO;
-
-namespace MapboxTileServer.Services
-{
-    public interface IMapboxTileService
-    {
-        byte[] Read(Tileset tileset, int z, int x, int y);
-    }
-
-    public class MapboxTileService : IMapboxTileService
-    {
-        public byte[] Read(Tileset tileset, int z, int x, int y)
-        {
-            using (var connection = new SqliteConnection($"Data Source={tileset.Filename}"))
-            {
-                connection.Open();
-
-                var command = connection.CreateCommand();
-
-                command.CommandText = "SELECT tile_data FROM tiles WHERE zoom_level = $level AND tile_column = $column AND tile_row = $row";
-
-                command.Parameters.AddWithValue("$level", z);
-                command.Parameters.AddWithValue("$column", x);
-                command.Parameters.AddWithValue("$row", ReverseY(y, z));
-
-                using (var reader = command.ExecuteReader())
-                {
-                    while (reader.Read())
-                    {
-                        return GetBytes(reader);
-                    }
-                }
-            }
-
-            return null;
-        }
-
-        private static int ReverseY(int y, int z)
-        {
-            return (int)(Math.Pow(2.0d, z) - 1 - y);
-        }
-
-        private static byte[] GetBytes(SqliteDataReader reader)
-        {
-            byte[] buffer = new byte[2048];
-            
-            using (MemoryStream stream = new MemoryStream())
-            {
-                long bytesRead = 0;
-                long fieldOffset = 0;
-                
-                while ((bytesRead = reader.GetBytes(0, fieldOffset, buffer, 0, buffer.Length)) > 0)
-                {
-                    stream.Write(buffer, 0, (int)bytesRead);
-                    fieldOffset += bytesRead;
-                }
-
-                return stream.ToArray();
-            }
-        }
-    }
-}
-```
-
-[MBTiles Specification]: https://github.com/mapbox/mbtiles-spec
-[Vector tile specification]: https://docs.mapbox.com/vector-tiles/specification/
-
-### TilesController: Serving the Tiles ###
-
-What's left is serving the Tiles. We are writing a ``TilesController``, which gets the ``ApplicationOptions`` and ``MapboxTileService`` 
-injected. There is a single ``HttpGet`` Endpoint, which resolves all required parameters from the the requested Route. For Mapbox 
-Vector Tiles (MIME Type ``application/vnd.mapbox-vector-tile``) we need to add the ``Content-Type: gzip`` header, because this data 
-has already been gzipped in the database.
-
-```csharp
-// Copyright (c) Philipp Wagner. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
-
-using MapboxTileServer.Options;
-using MapboxTileServer.Services;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-
-namespace MapboxTileServer.Controllers
-{
-    [ApiController]
-    public class TilesController : ControllerBase
-    {
-        private readonly ILogger<TilesController> logger;
-        private readonly ApplicationOptions applicationOptions;
-        private readonly IMapboxTileService mapboxTileService;
-
-        public TilesController(ILogger<TilesController> logger, IOptions<ApplicationOptions> applicationOptions, IMapboxTileService mapboxTileService)
-        {
-            this.logger = logger;
-            this.applicationOptions = applicationOptions.Value;
-            this.mapboxTileService = mapboxTileService;
-        }
-
-        [HttpGet]
-        [Route("/tiles/{tileset}/{z}/{x}/{y}")]
-        public ActionResult Get([FromRoute(Name = "tileset")] string tiles, [FromRoute(Name = "z")] int z, [FromRoute(Name = "x")] int x, [FromRoute(Name = "y")] int y)
-        {
-            logger.LogDebug($"Requesting Tiles (tileset = {tiles}, z = {z}, x = {x}, y = {y})");
- 
-            if(!applicationOptions.Tilesets.TryGetValue(tiles, out Tileset tileset))
-            {
-                logger.LogWarning($"No Tileset available for Tileset '{tiles}'");
-
-                return BadRequest();
-            }
-
-            var data = mapboxTileService.Read(tileset, z, x, y);
-            
-            if(data == null)
-            {
-                return Accepted();
-            }
-
-            // Mapbox Vector Tiles are already compressed, so we need to tell 
-            // the client we are sending gzip Content:
-            if (tileset.ContentType == Constants.MimeTypes.ApplicationMapboxVectorTile)
-            {
-                Response.Headers.Add("Content-Encoding", "gzip");
-            }
-
-            return new FileContentResult(data, tileset.ContentType);
-        }
-    }
-}
-```
-
-### Getting the Style right: Setting the Tiles ###
-
-If you are downloading the Styles from [maputnik], you are going to access remote endpoints for tiles, 
-sprites and fonts. In order to load the resources from our local server, we are setting the properties 
-for ``sources``, ``sprite`` and ``glyphs`` in the ``osm_liberty.json`` file:
-
-```json
-{
-  "version": 8,
-  "name": "OSM Liberty",
-  "metadata": {
-    "maputnik:license": "https://github.com/maputnik/osm-liberty/blob/gh-pages/LICENSE.md",
-    "maputnik:renderer": "mbgljs",
-    "openmaptiles:version": "3.x"
-  },
-  "sources": {
-    "ne_2_hr_lc_sr": {
-      "tiles": [
-        "http://localhost:9000/tiles/natural_earth_2_shaded_relief.raster/{z}/{x}/{y}"
-      ],
-      "type": "raster",
-      "tileSize": 256,
-      "maxzoom": 6
-    },
-    "openmaptiles": {
-      "type": "vector",
-      "tiles": [
-        "http://localhost:9000/tiles/openmaptiles/{z}/{x}/{y}"
-      ],
-      "minzoom": 0,
-      "maxzoom": 14
-    }
-  },
-  "sprite": "http://localhost:9000/static/sprites/osm_liberty/osm-liberty",
-  "glyphs": "http://localhost:9000/static/fonts/{fontstack}/{range}.pbf",
-  "layers": [
-    {
-      "id": "background",
-      "type": "background",
-      "filter": [ "all" ],
-      "paint": { "background-color": "rgb(239,239,239)" }
-    },
-    {
-      "id": "ne_2_hr_lc_sr",
-      "type": "raster",
-      "source": "ne_2_hr_lc_sr",
-      "interactive": true,
-      "layout": {
-        "visibility": "visible"
-      },
-      "paint": {
-        "raster-opacity": {
-          "base": 0.5,
-          "stops": [
-            [
-              0,
-              0.6
-            ],
-            [
-              4,
-              1
-            ],
-            [
-              8,
-              0.3
-            ]
-          ]
-        },
-        "raster-contrast": 0
-      },
-      
-      ... Original OSM Liberty Style from here ...
-      
-    }
-  ]
-}
-```
-
-### Mapbox GL JS: A minimal Frontend to display the Map ###
-
-So how can we render the Maps served by our MapboxTileServer? We are going to use Mapbox GL JS, which is a ...
-
-> [...] JavaScript library that uses WebGL to render interactive maps from vector tiles and Mapbox 
-> styles. It is part of the Mapbox GL ecosystem, which includes Mapbox Mobile, a compatible renderer written in 
-> C++ with bindings for desktop and mobile platforms.
-
-We can include it as a ``script`` in a simple HTML file. This is heavily based on a HTML file from the [baremaps] 
-repository, so I don't take much of a credit in it. It displays the Mapbox GL JS client for the full view width 
-and view height of your browser, and it overlays a side bar to display features of a tile.
-
-```html
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8" />
-    <title>Mapbox GL</title>
-    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
-    <script src="https://api.mapbox.com/mapbox-gl-js/v1.12.0/mapbox-gl.js"></script>
-    <link href="https://api.mapbox.com/mapbox-gl-js/v1.12.0/mapbox-gl.css" rel="stylesheet" />
-    <style>
-        #map {
-            height: 100vh;
-        }
-
-            #map canvas {
-                cursor: crosshair;
-            }
-
-        #heading {
-            font-family: 'Montserrat', sans-serif;
-            color: rgb(255, 255, 255);
-            background: rgb(40, 40, 40);
-            position: fixed;
-            top: 0px;
-            left: 0px;
-            bottom: 0px;
-            padding: 30px;
-            width: 450px;
-            overflow: auto;
-            z-index: 9;
-        }
-
-        h1 {
-            font-family: 'Roboto', sans-serif;
-            margin: 0;
-            padding: 0;
-        }
-
-        pre {
-            font-family: 'Roboto Mono', monospace;
-        }
-
-        a, a:hover, a:visited {
-            color: rgb(229, 235, 247);
-        }
-    </style>
-</head>
-<body style="margin: 0">
-    <div id="map"></div>
-    <div id="heading">
-        <h1>MapboxTileserver</h1>
-        <p>
-           Click on the map to get the metadata associated with a Mapbox Vector Tile. You can learn about the Vector Tile Specification <a href="https://docs.mapbox.com/vector-tiles/specification/">here</a>.
-        </p>
-        <pre id='features'>
-Select a feature on the map
-to display its metadata.
-  </pre>
-    </div>
-    <script>
-        // Initialize the map
-        var map = new mapboxgl.Map({
-            container: 'map',
-            style: 'http://localhost:9000/static/style/osm_liberty/osm_liberty.json',
-            center: [7.628202, 51.961563],
-            zoom: 14
-        });
-
-        // Recenter the map according to the location saved in the url
-        if (location.hash) {
-            let arr = location.hash.substr(1).split("/");
-            let zoom = parseFloat(arr[0]);
-            let lng = parseFloat(arr[1]);
-            let lat = parseFloat(arr[2]);
-            let bearing = parseFloat(arr[3]);
-            let pitch = parseFloat(arr[4]);
-            map.setZoom(zoom);
-            map.setCenter([lng, lat]);
-            map.setBearing(bearing);
-            map.setPitch(pitch);
-        }
-
-        // Changes the hash of the url when the location changes
-        map.on('moveend', ev => {
-            location.hash = "#" + map.getZoom() + "/" + map.getCenter().lng + "/" + map.getCenter().lat + "/" + map.getBearing() + "/" + map.getPitch();
-        });
-
-        map.on('click', function (e) {
-            var features = map.queryRenderedFeatures(e.point);
-
-            document.getElementById('features').innerHTML = JSON.stringify(features.map(f => f.properties), null, 2);
-        });
-
-    </script>
-</body>
-</html>
-```
-
-#### What's this Overzooming? ####
-
-Now if you look the Vector tiles generated by OpenMapTiles, they are generated down to Zoom Level 14. Often 
-enough you want to zoom in even more, that's why the OpenMapTiles documentation states:
-
-> The tiles are generated on zoom levels 1 to 14, but can be overzoomed to level 18+. Vector tiles contain 
-> selection of OpenStreetMap data - following the OpenMapTiles schema, compatible with the open styles.
-
-So how can we overzoom the tiles? Now this was a not really obvious. You first need to adjust the style and 
-set the ``minzoom`` and ``maxzoom`` zoom levels for the ``openmaptiles`` tileset:
-
-```json
-{
-  "sources": {
-    "openmaptiles": {
-      "type": "vector",
-      "tiles": [
-        "http://localhost:9000/tiles/openmaptiles/{z}/{x}/{y}"
-      ],
-      "minzoom": 0,
-      "maxzoom": 14
-    }
-  }
-}
-```
-
-And when you initialize the Mapbox GL JS client do not set any minimum or maximum zoom-level:
-
-```javascript
-var map = new mapboxgl.Map({
-    container: 'map',
-    style: 'http://localhost:9000/static/style/osm_liberty/osm_liberty.json',
-    center: [7.628202, 51.961563],
-    zoom: 14
-});
-```
-
-This allows the client to overzoom the tiles and go down to ground level.
-
-## Conclusion ##
-
-And that's it! You now have a solid starting point to integrate [OpenMapTiles] in your projects or 
-write a tile server yourself. Of course a lot of things are still missing, like Geocoding to reverse 
-search for adresses. Maybe I will research it in a follow-up article.
+It was *unbelievably easy* to get started with Photon. The developers have done a great job!
 
 [maputnik]: http://maputnik.github.io/
 [OpenMapTiles]: https://openmaptiles.org/
+[Nomatim]: https://nominatim.org/
+[komoot]: http://www.komoot.de/
+[photon.komoot.de]: http://photon.komoot.de/
+[www.komoot.de]: http://www.komoot.de/
+[OpenStreetMap]: http://www.osm.org/
+[elasticsearch]: http://elasticsearch.org/
+[GraphHopper]: https://www.graphhopper.com/
+[@ionvia]: https://github.com/lonvia
