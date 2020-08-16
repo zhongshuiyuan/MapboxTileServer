@@ -5,7 +5,6 @@ using System.Collections.Generic;
 
 namespace MapboxTileServer.Options
 {
-
     public class ApplicationOptions
     {
         public PhotonSettings Photon { get; set; }

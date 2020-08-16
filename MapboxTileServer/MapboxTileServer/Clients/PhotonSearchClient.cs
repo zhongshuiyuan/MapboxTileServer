@@ -1,11 +1,11 @@
-﻿using MapboxTileServer.Clients.Http.Builder;
+﻿// Copyright (c) Philipp Wagner. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+using MapboxTileServer.Clients.Http.Builder;
 using MapboxTileServer.Options;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
