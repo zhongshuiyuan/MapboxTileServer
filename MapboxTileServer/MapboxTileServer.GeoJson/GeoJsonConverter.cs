@@ -1,12 +1,15 @@
 ﻿// Copyright (c) Philipp Wagner. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Xml;
 using System.Xml.Linq;
+using System.Xml.XPath;
 using MapboxTileServer.GeoJson.Extensions;
 using MapboxTileServer.GeoJson.Model;
 
@@ -45,33 +48,40 @@ namespace MapboxTileServer.GeoJson
 
         public static string FromKml(XDocument document)
         {
+          
             var styleMapIndex = new Dictionary<string, Dictionary<string, string>>();
             var styleByHash = new Dictionary<string, XElement>();
             var styleIndex = new Dictionary<string, string>();
 
-
             var root = document.Root;
+
             if (root.Element(Kml + "Document") != null)
             {
                 root = root.Element(Kml + "Document");
             }
 
             var placemarks = root
-                .Elements(Kml + "Placemark")
+                .XPathSelectElements("//*[local-name()='Placemark']")
                 .ToList();
 
             var styles = root
-                .Elements(Kml + "Style")
+                .XPathSelectElements("//*[local-name()='Style']")
                 .ToList();
 
             var styleMaps = root
-                .Elements(Kml + "StyleMap")
+                .XPathSelectElements("//*[local-name()='StyleMap']")
                 .ToList();
 
             foreach (var style in styles)
             {
+                if(style.Attribute("id") == null)
+                {
+                    continue;
+                }
+
                 var hash = GetMD5Hash(style.ToString());
-                styleIndex["#" + style.Attribute("id").Value] = hash;
+                var id = style.Attribute("id") != null ? style.Attribute("id").Value : "";
+                styleIndex["#" + id] = hash;
 
                 styleByHash[hash] = style;
             }
@@ -277,7 +287,7 @@ namespace MapboxTileServer.GeoJson
 
             string colorProp = (prefix == "stroke" || prefix == "fill") ? prefix : prefix + "-color";
 
-            if (v.Substring(0, 1) == "#")
+            if (!string.IsNullOrWhiteSpace(v) && v.Substring(0, 1) == "#")
             {
                 v = v.Substring(1);
             }
@@ -288,7 +298,7 @@ namespace MapboxTileServer.GeoJson
             }
             else if (v.Length == 8)
             {
-                properties[prefix + "-opacity"] = int.Parse(v.Substring(0, 2)) / 255.0f;
+                properties[prefix + "-opacity"] = Convert.ToByte(v.Substring(0, 2), 16) / 255.0f;
                 properties[colorProp] = "#" + v.Substring(6, 2) + v.Substring(4, 2) + v.Substring(2, 2);
             }
         }
@@ -332,11 +342,11 @@ namespace MapboxTileServer.GeoJson
             // Nodes:
             var timeSpan = root.Element(Kml + "TimeSpan");
             var timeStamp = root.Element(Kml + "TimeStamp");
-            var iconStyle = root.Element(Kml + "IconStyle");
-            var labelStyle = root.Element(Kml + "LabelStyle");
-            var extendedData = root.Element(Kml + "ExtendedData");
-            var lineStyle = root.Element(Kml + "LineStyle");
-            var polyStyle = root.Element(Kml + "PolyStyle");
+            var iconStyle = root.Element(Kml + "Style")?.Element(Kml + "IconStyle");
+            var labelStyle = root.Element(Kml + "Style")?.Element(Kml + "LabelStyle");
+            var extendedData = root.Element(Kml + "Style")?.Element(Kml + "ExtendedData");
+            var lineStyle = root.Element(Kml + "Style")?.Element(Kml + "LineStyle");
+            var polyStyle = root.Element(Kml + "Style")?.Element(Kml + "PolyStyle");
             var visibility = root.Element(Kml + "visibility");
 
             if (!geomsAndTimes.GeometryNodes.Any())
@@ -468,30 +478,40 @@ namespace MapboxTileServer.GeoJson
             {
                 SetKmlColor(properties, polyStyle, "fill");
 
-                var fill = polyStyle.Element(Kml + "fill").Value;
-                var outline = polyStyle.Element(Kml + "outline").Value;
+                var fill = polyStyle.Element(Kml + "fill")?.Value;
+                var outline = polyStyle.Element(Kml + "outline")?.Value;
 
                 if (!string.IsNullOrWhiteSpace(fill))
                 {
                     properties["fill-opacity"] = fill == "1" ? 1 : 0;
                 }
+
                 if (!string.IsNullOrWhiteSpace(outline))
+                {
                     properties["stroke-opacity"] = outline == "1" ? 1 : 0;
+                }
             }
 
             if (extendedData != null)
             {
                 var datas = extendedData.Elements(Kml + "Data");
-                var simpleDatas = extendedData.Elements(Kml + "SimpleData");
 
                 foreach (var data in datas)
                 {
                     properties[data.Attribute("name").Value] = data.Element(Kml + "value").Value;
                 }
 
-                foreach (var simpleData in simpleDatas)
+                // Also parse all Schema Datas:
+                var schemaDatas = extendedData.Elements(Kml + "SchemaData");
+
+                foreach (var schemaData in schemaDatas)
                 {
-                    properties[simpleData.Attribute("name").Value] = simpleData.Value;
+                    var simpleDatas = schemaData.Elements(Kml + "SimpleData");
+
+                    foreach (var simpleData in simpleDatas)
+                    {
+                        properties[simpleData.Attribute("name").Value] = simpleData.Value;
+                    }
                 }
             }
 
