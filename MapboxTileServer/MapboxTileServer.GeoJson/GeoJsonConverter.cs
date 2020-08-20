@@ -65,7 +65,7 @@ namespace MapboxTileServer.GeoJson
                 .ToList();
 
             var styles = root
-                .XPathSelectElements("//*[local-name()='Style']")
+                .XPathSelectElements("//*[local-name()='Style'][@id]")
                 .ToList();
 
             var styleMaps = root
@@ -80,8 +80,8 @@ namespace MapboxTileServer.GeoJson
                 }
 
                 var hash = GetMD5Hash(style.ToString());
-                var id = style.Attribute("id") != null ? style.Attribute("id").Value : "";
-                styleIndex["#" + id] = hash;
+                
+                styleIndex["#" + style.Attribute("id")?.Value ] = hash;
 
                 styleByHash[hash] = style;
             }
@@ -342,11 +342,14 @@ namespace MapboxTileServer.GeoJson
             // Nodes:
             var timeSpan = root.Element(Kml + "TimeSpan");
             var timeStamp = root.Element(Kml + "TimeStamp");
+            
+            // Inline Styles:
             var iconStyle = root.Element(Kml + "Style")?.Element(Kml + "IconStyle");
             var labelStyle = root.Element(Kml + "Style")?.Element(Kml + "LabelStyle");
             var extendedData = root.Element(Kml + "Style")?.Element(Kml + "ExtendedData");
             var lineStyle = root.Element(Kml + "Style")?.Element(Kml + "LineStyle");
             var polyStyle = root.Element(Kml + "Style")?.Element(Kml + "PolyStyle");
+
             var visibility = root.Element(Kml + "visibility");
 
             if (!geomsAndTimes.GeometryNodes.Any())
