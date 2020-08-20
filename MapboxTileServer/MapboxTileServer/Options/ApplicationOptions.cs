@@ -7,6 +7,8 @@ namespace MapboxTileServer.Options
 {
     public class ApplicationOptions
     {
+        public string SchemaDirectory { get; set; }
+
         public PhotonSettings Photon { get; set; }
 
         public IDictionary<string, Tileset> Tilesets { get; set; }
