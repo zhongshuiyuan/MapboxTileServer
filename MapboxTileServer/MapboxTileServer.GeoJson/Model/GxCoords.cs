@@ -3,19 +3,12 @@
 
 namespace MapboxTileServer.GeoJson.Model
 {
-    public class GxCoords : IGeometryNode
+    public class GxCoords
     {
-        public readonly string Type = "gx:Coords";
+        public string Type { get; private set; } = "gx:Coords";
 
-        public readonly float[][] Coordinates;
+        public float[][] Coordinates { get; set; }
 
-        public readonly string[] Times;
-
-
-        public GxCoords(float[][] coordinates, string[] times)
-        {
-            Coordinates = coordinates;
-            Times = times;
-        }
+        public string[] Times { get; set; }
     }
 }

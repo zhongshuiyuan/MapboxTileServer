@@ -5,13 +5,8 @@ namespace MapboxTileServer.GeoJson.Model
 {
     public class GeometryAndTimes
     {
-        public readonly IGeometryNode[] GeometryNodes;
-        public readonly string[][] Times;
+        public object[] GeometryNodes { get; set; }
 
-        public GeometryAndTimes(IGeometryNode[] geometryNodes, string[][] times)
-        {
-            GeometryNodes = geometryNodes;
-            Times = times;
-        }
+        public string[][] Times { get; set; }
     }
 }

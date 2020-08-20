@@ -7,6 +7,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
+using MapboxTileServer.GeoJson.Extensions;
 using MapboxTileServer.GeoJson.Model;
 
 namespace MapboxTileServer.GeoJson
@@ -15,27 +16,56 @@ namespace MapboxTileServer.GeoJson
     /// This is a shameless copy from: https://github.com/tmcw/togeojson/blob/master/lib/kml.js, so there is 
     /// no need for taking additional dependencies on third-party libraries. Updates to kml.js should be 
     /// reflected here.
+    /// 
+    /// The Object Model is intentionally ugly (no abstract classes, no interfaces), because this would make 
+    /// Deserialization with .NET Core System.Text.Json complicated or impossible, see the Open Issue at:
+    /// https://github.com/dotnet/runtime/issues/30083.
     /// </summary>
     public partial class GeoJsonConverter
     {
-        private static readonly string[] Geotypes = new[] { "Polygon", "LineString", "Point", "Track", "gx:Track" };
+        private static readonly XNamespace Kml = XNamespace.Get("http://www.opengis.net/kml/2.2");
+        private static readonly XNamespace Ext = XNamespace.Get("http://www.google.com/kml/ext/2.2");
 
-        public string FromKml(XDocument document)
+        private static readonly XName[] Geotypes = new[] 
+        {
+            XName.Get("Polygon", Kml.NamespaceName),
+            XName.Get("LineString", Kml.NamespaceName),
+            XName.Get("Point", Kml.NamespaceName),
+            XName.Get("Track", Kml.NamespaceName),
+            XName.Get("Track", Ext.NamespaceName)
+        };
+
+
+        public static string FromKml(string xml)
+        {
+            var root = XDocument.Parse(xml);
+
+            return FromKml(root);
+        }
+
+        public static string FromKml(XDocument document)
         {
             var styleMapIndex = new Dictionary<string, Dictionary<string, string>>();
             var styleByHash = new Dictionary<string, XElement>();
             var styleIndex = new Dictionary<string, string>();
 
-            var placemarks = document
-                .Elements("Placemark")
+
+            var root = document.Root;
+            if (root.Element(Kml + "Document") != null)
+            {
+                root = root.Element(Kml + "Document");
+            }
+
+            var placemarks = root
+                .Elements(Kml + "Placemark")
                 .ToList();
 
-            var styles = document
-                .Elements("Style")
+            var styles = root
+                .Elements(Kml + "Style")
                 .ToList();
 
-            var styleMaps = document
-                .Elements("StyleMap")
+            var styleMaps = root
+                .Elements(Kml + "StyleMap")
                 .ToList();
 
             foreach (var style in styles)
@@ -50,13 +80,13 @@ namespace MapboxTileServer.GeoJson
             {
                 styleIndex['#' + styleMap.Attribute("id").Value] = GetMD5Hash(styleMap.ToString());
 
-                var pairs = styleMap.Elements("Pair").ToList();
+                var pairs = styleMap.Elements(Kml + "Pair").ToList();
 
                 var pairsMap = new Dictionary<string, string>();
 
                 foreach (var pair in pairs)
                 {
-                    pairsMap[pair.Element("key").Value] = pair.Element("styleUrl").Value;
+                    pairsMap[pair.Element(Kml + "key").Value] = pair.Element(Kml + "styleUrl").Value;
                 }
 
                 styleMapIndex['#' + styleMap.Attribute("id").Value] = pairsMap;
@@ -83,38 +113,48 @@ namespace MapboxTileServer.GeoJson
         }
 
 
-        private float[] GetCoordinates(string value)
+        private static float[] GetCoordinates(string value)
         {
+            if(string.IsNullOrWhiteSpace(value))
+            {
+                return null;
+            }
+
             return Regex.Replace(value, @"s", "")
                 .Split(",")
                 .Select(x => float.Parse(x))
                 .ToArray();
         }
 
-        private float[][] GetCoordinatesArray(string value)
+        private static float[][] GetCoordinatesArray(string value)
         {
+            if(string.IsNullOrWhiteSpace(value))
+            {
+                return null;
+            }
+
             return Regex.Replace(value, @"s", "")
                 .Split(" ")
                 .Select(x => GetCoordinates(x))
                 .ToArray();
         }
 
-        private GeometryAndTimes GetGeometries(XElement root)
+        private static GeometryAndTimes GetGeometries(XElement root)
         {
-            var geometries = new List<IGeometryNode>();
+            var geometries = new List<object>();
             var coordTimes = new List<string[]>();
 
-            if (root.Element("MultiGeometry") != null)
+            if (root.Element(Kml + "MultiGeometry") != null)
             {
-                return GetGeometries(root.Element("MultiGeometry"));
+                return GetGeometries(root.Element(Kml + "MultiGeometry"));
             }
-            if (root.Element("MultiTrack") != null)
+            if (root.Element(Kml + "MultiTrack") != null)
             {
-                return GetGeometries(root.Element("MultiTrack"));
+                return GetGeometries(root.Element(Kml + "MultiTrack"));
             }
-            if (root.Element("gx:MultiTrack") != null)
+            if (root.Element(Ext + "MultiTrack") != null)
             {
-                return GetGeometries(root.Element("gx:MultiTrack"));
+                return GetGeometries(root.Element(Ext + "MultiTrack"));
             }
 
             foreach (var geotype in Geotypes)
@@ -127,62 +167,77 @@ namespace MapboxTileServer.GeoJson
                 {
                     foreach (var geomNode in geometryNodes)
                     {
-                        if (geotype == "Point")
+                        if (geotype == XName.Get("Point", Kml.NamespaceName))
                         {
-                            var coordinates = GetCoordinates(geomNode.Element("coordinates").Value);
-                            var point = new Point(coordinates);
+                            var coordinates = GetCoordinates(geomNode.Element(Kml + "coordinates").Value);
+                            if (coordinates != null)
+                            {
+                                var point = new Point { Coordinates = coordinates };
 
-                            geometries.Add(point);
+                                geometries.Add(point);
+                            }
                         }
-                        else if (geotype == "LineString")
+                        else if (geotype == XName.Get("LineString", Kml.NamespaceName))
                         {
-                            var coordinates = GetCoordinatesArray(geomNode.Element("coordinates").Value);
-                            var lineString = new LineString(coordinates);
+                            var coordinates = GetCoordinatesArray(geomNode.Element(Kml + "coordinates").Value);
 
-                            geometries.Add(lineString);
+                            if (coordinates != null)
+                            {
+                                var lineString = new LineString { Coordinates = coordinates };
+
+                                geometries.Add(lineString);
+                            }
                         }
-                        else if (geotype == "Polygon")
+                        else if (geotype == XName.Get("Polygon", Kml.NamespaceName))
                         {
-                            var rings = geomNode.Elements("LinearRing");
+                            var rings = geomNode.Elements(Kml + "LinearRing");
 
                             var coordinates = new List<float[]>();
 
                             foreach (var ring in rings)
                             {
-                                var coordinatesOfRing = GetCoordinates(ring.Element("coordinates").Value);
-                                coordinates.Add(coordinatesOfRing);
+                                var coordinatesOfRing = GetCoordinates(ring.Element(Kml + "coordinates").Value);
+                                if (coordinatesOfRing != null)
+                                {
+                                    coordinates.Add(coordinatesOfRing);
+                                }
                             }
 
-                            var polygon = new Polygon(coordinates.ToArray());
+                            if (coordinates.Count > 0)
+                            {
+                                var polygon = new Polygon { Coordinates = coordinates.ToArray() };
 
-                            geometries.Add(polygon);
+                                geometries.Add(polygon);
+                            }
                         }
-                        else if (geotype == "Track" || geotype == "gx:Track")
+                        else if (geotype == XName.Get("Track", Kml.NamespaceName) || geotype == XName.Get("Track", Ext.NamespaceName))
                         {
                             var track = GetGxCoords(geomNode);
+                            
+                            if (track.Coordinates != null)
+                            {
+                                var lineString = new LineString { Coordinates = track.Coordinates };
+                                geometries.Add(lineString);
+                            }
 
-                            var lineString = new LineString(track.Coordinates);
                             var times = track.Times;
 
-                            geometries.Add(lineString);
-
-                            if (times.Any())
+                            if (times != null)
                             {
                                 coordTimes.Add(track.Times);
                             }
-
                         }
                     }
                 }
             }
 
-            return new GeometryAndTimes(geometries.ToArray(), coordTimes.ToArray());
+            return new GeometryAndTimes { GeometryNodes = geometries.ToArray(), Times = coordTimes.ToArray() };
         }
 
-        private GxCoords GetGxCoords(XElement root)
+        private static GxCoords GetGxCoords(XElement root)
         {
             var elements = root
-                .Elements("coord")
+                .Elements(Kml + "coord")
                 .ToList();
 
             var coordinates = new List<float[]>();
@@ -192,7 +247,7 @@ namespace MapboxTileServer.GeoJson
             if (elements.Count == 0)
             {
                 elements = root
-                    .Elements("gx:coord")
+                    .Elements(Ext + "coord")
                     .ToList();
             }
 
@@ -206,19 +261,19 @@ namespace MapboxTileServer.GeoJson
                 coordinates.Add(coordinatesForElement);
             }
 
-            var timeElems = root.Elements("when");
+            var timeElems = root.Elements(Kml + "when");
 
             foreach (var timeElem in timeElems)
             {
                 times.Add(timeElem.Value);
             }
 
-            return new GxCoords(coordinates.ToArray(), times.ToArray());
+            return new GxCoords { Coordinates = coordinates.ToArray(), Times = times.ToArray() };
         }
 
-        public void SetKmlColor(Dictionary<string, object> properties, XElement elem, string prefix)
+        public static void SetKmlColor(Dictionary<string, object> properties, XElement elem, string prefix)
         {
-            string v = elem.Element("color") != null ? elem.Element("color").Value : "";
+            string v = elem.Element(Kml + "color") != null ? elem.Element(Kml + "color").Value : "";
 
             string colorProp = (prefix == "stroke" || prefix == "fill") ? prefix : prefix + "-color";
 
@@ -238,9 +293,9 @@ namespace MapboxTileServer.GeoJson
             }
         }
 
-        private void SetNumericProperty(Dictionary<string, object> properties, XElement elem, string source, string target)
+        private static void SetNumericProperty(Dictionary<string, object> properties, XElement elem, string source, string target)
         {
-            XElement node = elem.Element(source);
+            XElement node = elem.Element(Kml + source);
 
             if (node == null)
             {
@@ -263,26 +318,26 @@ namespace MapboxTileServer.GeoJson
             }
         }
 
-        private Feature GetPlacemark(XElement root, Dictionary<string, string> styleIndex, Dictionary<string, Dictionary<string, string>> styleMapIndex, Dictionary<string, XElement> styleByHash)
+        private static Feature GetPlacemark(XElement root, Dictionary<string, string> styleIndex, Dictionary<string, Dictionary<string, string>> styleMapIndex, Dictionary<string, XElement> styleByHash)
         {
             var geomsAndTimes = GetGeometries(root);
             var properties = new Dictionary<string, object>();
 
             // Values:
-            var name = root.Element("name").Value;
-            var address = root.Element("address").Value;
-            var styleUrl = root.Element("styleUrl").Value;
-            var description = root.Element("description").Value;
+            var name = root.Element(Kml + "name")?.Value;
+            var address = root.Element(Kml + "address")?.Value;
+            var styleUrl = root.Element(Kml + "styleUrl")?.Value;
+            var description = root.Element(Kml + "description")?.Value;
 
             // Nodes:
-            var timeSpan = root.Element("'TimeSpan");
-            var timeStamp = root.Element("TimeStamp");
-            var iconStyle = root.Element("IconStyle");
-            var labelStyle = root.Element("LabelStyle");
-            var extendedData = root.Element("ExtendedData");
-            var lineStyle = root.Element("LineStyle");
-            var polyStyle = root.Element("PolyStyle");
-            var visibility = root.Element("visibility");
+            var timeSpan = root.Element(Kml + "TimeSpan");
+            var timeStamp = root.Element(Kml + "TimeStamp");
+            var iconStyle = root.Element(Kml + "IconStyle");
+            var labelStyle = root.Element(Kml + "LabelStyle");
+            var extendedData = root.Element(Kml + "ExtendedData");
+            var lineStyle = root.Element(Kml + "LineStyle");
+            var polyStyle = root.Element(Kml + "PolyStyle");
+            var visibility = root.Element(Kml + "visibility");
 
             if (!geomsAndTimes.GeometryNodes.Any())
             {
@@ -326,22 +381,22 @@ namespace MapboxTileServer.GeoJson
 
                     if (iconStyle == null)
                     {
-                        iconStyle = style.Element("IconStyle");
+                        iconStyle = style.Element(Kml + "IconStyle");
                     }
 
                     if (labelStyle == null)
                     {
-                        iconStyle = style.Element("LabelStyle");
+                        iconStyle = style.Element(Kml + "LabelStyle");
                     }
 
                     if (lineStyle == null)
                     {
-                        lineStyle = style.Element("LineStyle");
+                        lineStyle = style.Element(Kml + "LineStyle");
                     }
 
                     if (polyStyle == null)
                     {
-                        polyStyle = style.Element("PolyStyle");
+                        polyStyle = style.Element(Kml + "PolyStyle");
                     }
                 }
             }
@@ -353,8 +408,8 @@ namespace MapboxTileServer.GeoJson
 
             if (timeSpan != null)
             {
-                var begin = timeSpan.Element("begin").Value;
-                var end = timeSpan.Element("end").Value;
+                var begin = timeSpan.Element(Kml + "begin").Value;
+                var end = timeSpan.Element(Kml + "end").Value;
 
                 properties["timespan"] = new Dictionary<string, string>() {
                     { "begin", begin },
@@ -364,7 +419,7 @@ namespace MapboxTileServer.GeoJson
 
             if (timeStamp != null)
             {
-                properties["timestamp"] = timeStamp.Element("when").Value;
+                properties["timestamp"] = timeStamp.Element(Kml + "when").Value;
             }
 
             if (iconStyle != null)
@@ -374,7 +429,7 @@ namespace MapboxTileServer.GeoJson
                 SetNumericProperty(properties, iconStyle, "scale", "icon-scale");
                 SetNumericProperty(properties, iconStyle, "heading", "icon-heading");
 
-                XElement hotspot = iconStyle.Element("hotSpot");
+                XElement hotspot = iconStyle.Element(Kml + "hotSpot");
 
                 if (hotspot != null)
                 {
@@ -386,10 +441,10 @@ namespace MapboxTileServer.GeoJson
                     }
                 }
 
-                var icon = iconStyle.Element("Icon");
+                var icon = iconStyle.Element(Kml + "Icon");
                 if (icon != null)
                 {
-                    var href = icon.Element("href")?.Value;
+                    var href = icon.Element(Kml + "href")?.Value;
                     if (!string.IsNullOrWhiteSpace(href))
                     {
                         properties["icon"] = href;
@@ -413,8 +468,8 @@ namespace MapboxTileServer.GeoJson
             {
                 SetKmlColor(properties, polyStyle, "fill");
 
-                var fill = polyStyle.Element("fill").Value;
-                var outline = polyStyle.Element("outline").Value;
+                var fill = polyStyle.Element(Kml + "fill").Value;
+                var outline = polyStyle.Element(Kml + "outline").Value;
 
                 if (!string.IsNullOrWhiteSpace(fill))
                 {
@@ -426,12 +481,12 @@ namespace MapboxTileServer.GeoJson
 
             if (extendedData != null)
             {
-                var datas = extendedData.Elements("Data");
-                var simpleDatas = extendedData.Elements("SimpleData");
+                var datas = extendedData.Elements(Kml + "Data");
+                var simpleDatas = extendedData.Elements(Kml + "SimpleData");
 
                 foreach (var data in datas)
                 {
-                    properties[data.Attribute("name").Value] = data.Element("value").Value;
+                    properties[data.Attribute("name").Value] = data.Element(Kml + "value").Value;
                 }
 
                 foreach (var simpleData in simpleDatas)
@@ -447,13 +502,16 @@ namespace MapboxTileServer.GeoJson
 
             if (geomsAndTimes.GeometryNodes.Length > 0)
             {
-                if (geomsAndTimes.Times.Length == 1)
+                if (geomsAndTimes.Times.Length > 0)
                 {
-                    properties["coordTimes"] = geomsAndTimes.Times[0];
-                }
-                else
-                {
-                    properties["coordTimes"] = geomsAndTimes.Times;
+                    if (geomsAndTimes.Times.Length == 1)
+                    {
+                        properties["coordTimes"] = geomsAndTimes.Times[0];
+                    }
+                    else
+                    {
+                        properties["coordTimes"] = geomsAndTimes.Times;
+                    }
                 }
             }
 
@@ -461,12 +519,25 @@ namespace MapboxTileServer.GeoJson
 
             if (geomsAndTimes.GeometryNodes.Length == 1)
             {
-                return new Feature(id, geomsAndTimes.GeometryNodes[0], properties);
+                return new Feature
+                {
+                    Id = id,
+                    Geometries = geomsAndTimes.GeometryNodes[0],
+                    Properties = properties
+                };
             }
 
-            var geometryCollection = new GeometryCollection(geomsAndTimes.GeometryNodes);
+            var geometryCollection = new GeometryCollection
+            {
+                Geometries = geomsAndTimes.GeometryNodes
+            };
 
-            return new Feature(id, geometryCollection, properties);
+            return new Feature
+            {
+                Id = id,
+                Geometries = geometryCollection,
+                Properties = properties
+            };
         }
 
         private static string GetMD5Hash(string input)

@@ -1,17 +1,16 @@
 ﻿// Copyright (c) Philipp Wagner. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Text.Json.Serialization;
+
 namespace MapboxTileServer.GeoJson.Model
 {
-    public class GeometryCollection : IGeometryNode
+    public class GeometryCollection
     {
-        public readonly string Type = "GeometryCollection";
+        [JsonPropertyName("type")]
+        public string Type { get; private set; } = "GeometryCollection";
 
-        public readonly IGeometryNode[] Geometries;
-
-        public GeometryCollection(IGeometryNode[] geometries)
-        {
-            Geometries = geometries;
-        }
+        [JsonPropertyName("geometries")]
+        public object[] Geometries { get; set; }
     }
 }

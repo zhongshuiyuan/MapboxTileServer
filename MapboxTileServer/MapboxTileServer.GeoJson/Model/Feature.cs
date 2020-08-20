@@ -2,24 +2,22 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace MapboxTileServer.GeoJson.Model
 {
-    public class Feature : IGeoJson
+    public class Feature
     {
-        public readonly string Type = "Feature";
+        [JsonPropertyName("feature")]
+        public string Type { get; private set; } = "Feature";
 
-        public readonly string Id;
+        [JsonPropertyName("id")]
+        public string Id { get; set; }
 
-        public readonly IGeometryNode Geometries;
+        [JsonPropertyName("geometries")]
+        public object Geometries { get; set; }
 
-        public readonly Dictionary<string, object> Properties;
-
-        public Feature(string id, IGeometryNode geometries, Dictionary<string, object> properties)
-        {
-            Id = id;
-            Geometries = geometries;
-            Properties = properties;
-        }
+        [JsonPropertyName("properties")]
+        public Dictionary<string, object> Properties { get; set; }
     }
 }

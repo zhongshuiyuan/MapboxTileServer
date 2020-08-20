@@ -1,17 +1,16 @@
 ﻿// Copyright (c) Philipp Wagner. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Text.Json.Serialization;
+
 namespace MapboxTileServer.GeoJson.Model
 {
-    public class Polygon : IGeometryNode
+    public class Polygon
     {
-        public readonly string Type = "Polygon";
+        [JsonPropertyName("type")]
+        public string Type { get; private set; } = "Polygon";
 
-        public readonly float[][] Coordinates;
-
-        public Polygon(float[][] coordinates)
-        {
-            Coordinates = coordinates;
-        }
+        [JsonPropertyName("coordinates")]
+        public float[][] Coordinates { get; set; }
     }
 }
