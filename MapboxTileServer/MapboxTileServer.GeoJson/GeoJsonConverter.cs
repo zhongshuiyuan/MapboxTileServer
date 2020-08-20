@@ -396,7 +396,7 @@ namespace MapboxTileServer.GeoJson
 
                     if (labelStyle == null)
                     {
-                        iconStyle = style.Element(Kml + "LabelStyle");
+                        labelStyle = style.Element(Kml + "LabelStyle");
                     }
 
                     if (lineStyle == null)
