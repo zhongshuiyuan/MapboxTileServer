@@ -9,6 +9,7 @@
     "vetur.format.defaultFormatter.js": "prettier",
     "vetur.format.defaultFormatter.ts": "prettier",
     "vetur.format.defaultFormatter.sass": "sass-formatter",
+    "prettier.requireConfig": true,
     "prettier.singleQuote": true,
     "prettier.semi": false
   }
