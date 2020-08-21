@@ -11,5 +11,7 @@
     "vetur.format.defaultFormatter.sass": "sass-formatter",
     "prettier.requireConfig": true,
     "prettier.singleQuote": true,
-    "prettier.semi": false
+    "prettier.semi": false,
+    "prettier.printWidth": 1000,
+    "prettier.proseWrap": "never",
   }

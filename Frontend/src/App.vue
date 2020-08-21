@@ -1,6 +1,6 @@
 <template>
   <div id="app">
-    <Mapbox v-bind:style="style" v-bind:center="center" v-bind:zoom="zoom" />
+    <Mapbox :style="map.style" :center="map.center" :zoom="map.zoom" />
   </div>
 </template>
 
@@ -18,8 +18,7 @@ export default {
     data: function () {
       return {
         map: {
-          style:
-            'http://localhost:9000/static/style/osm_liberty/osm_liberty.json',
+          style: 'http://localhost:9000/static/style/osm_liberty/osm_liberty.json',
           center: [7.628202, 51.961563],
           zoom: 14,
         },
