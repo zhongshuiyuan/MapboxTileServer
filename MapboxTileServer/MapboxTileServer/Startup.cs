@@ -5,10 +5,18 @@ using MapboxTileServer.Clients;
 using MapboxTileServer.Options;
 using MapboxTileServer.Services;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
+using System;
+using System.IO;
+using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 
 namespace MapboxTileServer
 {
@@ -27,16 +35,12 @@ namespace MapboxTileServer
             // Add CORS:
             services.AddCors(options =>
             {
-                options.AddPolicy("CorsPolicy", policyBuilder =>
-                {
-                    policyBuilder
-                        .WithOrigins("http://localhost:4200", "http://localhost:9000")
+                options.AddPolicy("CorsPolicy", policyBuilder => policyBuilder
+                        .WithOrigins("http://localhost:4200", "http://localhost:8080", "http://localhost:9000")
                         .SetIsOriginAllowedToAllowWildcardSubdomains()
                         .AllowAnyMethod()
                         .AllowAnyHeader()
-                        .AllowCredentials();
-                    ;
-                });
+                        .AllowCredentials());
             });
 
             services.AddOptions();
@@ -60,25 +64,38 @@ namespace MapboxTileServer
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ICorsService corsService, ICorsPolicyProvider corsPolicyProvider)
         {
+
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
             }
+
+            app.UseCors("CorsPolicy");
 
             // To serve PBF Files, we need to allow unknown filetypes 
             // to be served by the Webserver:
             app.UseStaticFiles(new StaticFileOptions
             {
                 ServeUnknownFileTypes = true,
+                OnPrepareResponse = (ctx) =>
+                {
+                    var policy = corsPolicyProvider.GetPolicyAsync(ctx.Context, "CorsPolicy")
+                        .ConfigureAwait(false)
+                        .GetAwaiter().GetResult();
+
+                    var corsResult = corsService.EvaluatePolicy(ctx.Context, policy);
+
+                    corsService.ApplyResult(corsResult, ctx.Context.Response);
+                }
             });
 
-            app.UseRouting();            
+            app.UseRouting();
 
             app.UseEndpoints(endpoints =>
             {
-                endpoints.MapDefaultControllerRoute();
+                endpoints.MapDefaultControllerRoute().RequireCors("CorsPolicy");
             });
         }
     }
