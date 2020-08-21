@@ -12,4 +12,11 @@
     <ProjectReference Include="..\MapboxTileServer.GeoJson\MapboxTileServer.GeoJson.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Update="wwwroot\static\schemas\xAL.xsd">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <SubType>Designer</SubType>
+    </Content>
+  </ItemGroup>
+
 </Project>

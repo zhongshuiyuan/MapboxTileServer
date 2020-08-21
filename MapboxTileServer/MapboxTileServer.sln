@@ -9,6 +9,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MapboxTileServer.GeoJson", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MapboxTileServer.GeoJson.Test", "MapboxTileServer.GeoJson.Test\MapboxTileServer.GeoJson.Test.csproj", "{B32A39CA-EC7E-4D75-936E-F1F2CA498534}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MapboxTileServer.Test", "MapboxTileServer.Test\MapboxTileServer.Test.csproj", "{4D6ED022-49E3-464D-9AEC-8A86EAD67826}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{B32A39CA-EC7E-4D75-936E-F1F2CA498534}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B32A39CA-EC7E-4D75-936E-F1F2CA498534}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B32A39CA-EC7E-4D75-936E-F1F2CA498534}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4D6ED022-49E3-464D-9AEC-8A86EAD67826}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4D6ED022-49E3-464D-9AEC-8A86EAD67826}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4D6ED022-49E3-464D-9AEC-8A86EAD67826}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4D6ED022-49E3-464D-9AEC-8A86EAD67826}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -56,7 +56,7 @@ namespace MapboxTileServer
         {
             services.AddSingleton<PhotonSearchClient>();
             services.AddSingleton<IMapboxTileService, MapboxTileService>();
-            services.AddSingleton<IXmlValidationService, XmlValidationService>();
+            services.AddSingleton<IKmlConverterService, KmlConverterService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

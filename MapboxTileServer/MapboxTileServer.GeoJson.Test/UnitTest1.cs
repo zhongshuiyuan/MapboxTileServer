@@ -4,9 +4,8 @@ using System.IO;
 
 namespace MapboxTileServer.GeoJson.Test
 {
-    public class Tests
+    public class GeoJsonConverterTests
     {
-
         private readonly string[] testFileList = new[]
         {
             "addresses.kml",
