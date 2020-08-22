@@ -1,11 +1,12 @@
 <template>
-  <div id="map" />
+  <div ref="mapboxgl" />
 </template>
 
 <script>
+import 'mapbox-gl/dist/mapbox-gl.css';
+import mapboxgl from 'mapbox-gl';
 import { store, mutations } from '../store';
 import { options } from '../model/mapbox-options';
-import mapboxgl from 'mapbox-gl';
 
 export default {
   name: 'Mapbox',
@@ -14,7 +15,7 @@ export default {
   },
   mounted() {
     let m = new mapboxgl.Map({
-      container: 'map',
+      container: this.$refs.mapboxgl,
       style: `${store.baseUrl}/${this.mapStyle}`, //"http://localhost:9000/static/style/osm_liberty/osm_liberty.json",
       center: [this.lng, this.lat],
       zoom: this.zoom
@@ -40,11 +41,4 @@ export default {
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
-<style scoped>
-#map {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 100%;
-}
-</style>
+<style scoped></style>
