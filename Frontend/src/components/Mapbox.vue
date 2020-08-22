@@ -21,6 +21,8 @@ export default {
       zoom: this.zoom
     });
 
+    mutations.setMap(m);
+
     m.on('load', function () {});
 
     m.on('styledata', function () {

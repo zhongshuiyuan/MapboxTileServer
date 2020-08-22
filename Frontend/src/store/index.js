@@ -3,7 +3,10 @@ import Vue from "vue";
 export const store = Vue.observable({
   activeMap: null,
   baseUrl: null,
-  mbglIsReady: false
+  mbglIsReady: false,
+  mbgCenter: null,
+  mbglMarkers: [],
+  searchResults: []
 });
 
 export const mutations = {
@@ -16,5 +19,11 @@ export const mutations = {
   },
   setMbglIsReady(val) {
     store.mbglIsReady = val;
+  },
+  setSearchResults(val) {
+    store.searchResults = val;
+  },
+  addMarker(val) {
+    store.mbglMarkers.push(val);
   }
 };
