@@ -61,7 +61,7 @@ export default {
         this.search = result.caption;
         this.isOpen = false;
 
-        this.$emit('selected', result.item);
+        this.$emit('selected', result);
       }
     },
     onArrowDown(evt) {

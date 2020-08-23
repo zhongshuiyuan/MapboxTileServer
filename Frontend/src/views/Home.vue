@@ -12,11 +12,9 @@
 
 <script>
 import { store, mutations } from '../store';
-import MapboxLoader from '../components/MapboxLoader';
-import MapboxLine from '../components/MapboxLine';
-import MapboxMarker from '../components/MapboxMarker';
-import Search from '../components/Search.vue';
-import withPhotonSearchMixin from '../api/withPhotonSearchMixin';
+import { MapboxLoader, MapboxLine, MapboxMarker, Search } from '../components';
+import { SearchService } from '../api/search-service';
+import { isNullOrUndefined } from '../utils/core';
 
 export default {
   name: 'Home',
@@ -26,7 +24,6 @@ export default {
     MapboxLine,
     Search
   },
-  mixins: [withPhotonSearchMixin],
   data: function () {
     return {
       mapCenter: [7.628202, 51.961563],
@@ -109,31 +106,34 @@ export default {
   methods: {
     search: async function (val) {
       var endpoint = 'http://localhost:9000/search';
-      var features = await this.searchPhotonAsync(endpoint, val);
+      var features = await SearchService.searchAsync(endpoint, val);
 
       this.searchResults = features;
     },
-    onItemSelected: function (val) {
-
-      if(!val) {
+    onItemSelected: function (item) {
+      if (isNullOrUndefined(item)) {
         return;
       }
-      
-      // Get the last Marker ID, so we are not generating duplicates:
-      var lastMarkerId = this.markers
+
+      const markerId = this.getLastMarkerId() + 1;
+
+      this.markers.push({
+        id: `${markerId}`,
+        lnglat: item.coordinates
+      });
+
+      mutations.setMbglCenter(item.coordinates);
+    },
+    getLastMarkerId: function () {
+      if (isNullOrUndefined(this.markers)) {
+        return 0;
+      }
+
+      return this.markers
         .map((x) => x.id)
         .reduce((a, b) => {
           return Math.max(a, b);
         });
-
-      // Push the new Marker: 
-      this.markers.push({
-        id: `${lastMarkerId + 1}`,
-        lnglat: val.geometry.coordinates
-      });
-
-      // And inform all registered parties, that we have a new Center:
-      mutations.setMbglCenter(val.geometry.coordinates);
     }
   }
 };
