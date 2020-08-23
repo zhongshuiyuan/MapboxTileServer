@@ -20,12 +20,26 @@ export class SearchService {
 
     if (response.status === 200) {
       var data = await response.json();
+      // First check if we got data and features:
       if (!!data && !!data.features) {
-        const allSearchResults = data.features.map(x => transformFeature(x));
+        // We first transform the OSM Feature returned by Photon into something 
+        // simpler, that can be consumed by some other code.
+        const allSearchResults = data.features.map((x) => transformFeature(x));
+        // Then we group by the caption of the result. We are doing this, because
+        // we can have multiple items with the same name, say: The Street and a
+        // Point of Interest, which will both resolve to the same name.
         const groupedSearchResults = groupBy(allSearchResults, (x) => x.caption);
-        const distinctSearchResults = Array.from(groupedSearchResults, ([key, value]) => value[0]);
-
-        return distinctSearchResults;
+        // Now the grouped items looks like this:
+        //
+        //  [
+        //    [ "A", [ searchResultA, searchResultB ] ],
+        //    [ "B", [ searchResultC ] ],
+        //    [ "C", [ searchResultD, searchResultE ] ]
+        //  ]
+        //
+        // So to have distinct search results, we are only taking the first search
+        // result and discard the rest.
+        return Array.from(groupedSearchResults, ([key, value]) => value[0]);
       }
     }
 
