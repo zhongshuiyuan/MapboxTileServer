@@ -137,8 +137,9 @@ to display its metadata.
         });
 
         map.on('click', function (e) {
+            console.log("[ " + e.lngLat.wrap().lng + ", " + e.lngLat.wrap().lat + " ]");
             var features = map.queryRenderedFeatures(e.point);
-
+            
             document.getElementById('features').innerHTML = JSON.stringify(features.map(f => f.properties), null, 2);
         });
 

@@ -1,4 +1,3 @@
-import { store, mutations } from '../store';
 import { Functional } from '../utils/core';
 import { OSM } from '../utils/osm';
 

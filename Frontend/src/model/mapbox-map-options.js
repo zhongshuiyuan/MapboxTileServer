@@ -1,4 +1,9 @@
-export const options = {
+export const mapboxMapOptions = {
+  center: {
+    type: Array,
+    required: false,
+    default: [51.961563, 7.628202]
+  },
   minZoom: {
     type: Number,
     default: 0
@@ -97,14 +102,6 @@ export const options = {
   trackResize: {
     type: Boolean,
     default: true
-  },
-  lat: {
-    type: Number,
-    default: 7.628202
-  },
-  lng: {
-    type: Number,
-    default: 51.961563
   },
   zoom: {
     type: Number,

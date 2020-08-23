@@ -1,54 +1,139 @@
 <template>
   <div id="home">
     <Search id="search" :items="searchResults" @input="search" @selected="onItemSelected" />
-    <Mapbox id="map" map-style="static/style/osm_liberty/osm_liberty.json" :lat="51.961563" :lng="7.628202" :zoom="14" />
+    <MapboxLoader id="map" v-bind="mapOptions">
+      <template slot-scope="{ map }">
+        <MapboxMarker v-for="marker in markers" :key="marker.id" :marker="marker" :map="map" />
+        <MapboxLine v-for="line in lines" :id="line.id" :key="line.id" :map="map" :color.sync="line.color" :path.sync="line.path" />
+      </template>
+    </MapboxLoader>
   </div>
 </template>
 
 <script>
 import { store, mutations } from '../store';
-import mapboxgl from 'mapbox-gl';
-import Mapbox from '../components/Mapbox.vue';
+import MapboxLoader from '../components/MapboxLoader';
+import MapboxLine from '../components/MapboxLine';
+import MapboxMarker from '../components/MapboxMarker';
 import Search from '../components/Search.vue';
 import withPhotonSearchMixin from '../api/withPhotonSearchMixin';
 
 export default {
   name: 'Home',
   components: {
-    Mapbox,
+    MapboxLoader,
+    MapboxMarker,
+    MapboxLine,
     Search
   },
   mixins: [withPhotonSearchMixin],
   data: function () {
     return {
-      results: []
+      mapCenter: [7.628202, 51.961563],
+      mapOptions: {
+        mapStyle: 'http://localhost:9000/static/style/osm_liberty/osm_liberty.json',
+        zoom: 14,
+        center: [7.628202, 51.961563]
+      },
+      markers: [
+        {
+          id: '1',
+          lnglat: [7.628202, 51.961563]
+        }
+      ],
+      lines: [
+        {
+          id: '2',
+          path: [
+            [7.62566594560235, 51.96209250243865],
+            [7.625469237316111, 51.962116744080475],
+            [7.625166306555457, 51.96213371322199],
+            [7.624902717451505, 51.96214825819561],
+            [7.624702074999391, 51.962150682357105],
+            [7.624375539244738, 51.962150682357105],
+            [7.624147357632523, 51.96214825819561],
+            [7.624076542648822, 51.962145834033606],
+            [7.624108015974798, 51.96223552793663],
+            [7.6241434234666485, 51.962342190722325],
+            [7.624182765124488, 51.9624876395668],
+            [7.624190633454873, 51.962582181063084],
+            [7.624237843444462, 51.96271550847459],
+            [7.624273250935062, 51.96280035298457],
+            [7.62429292176455, 51.96290943854751],
+            [7.624351934249262, 51.96301609973003],
+            [7.624430617564826, 51.96313730531105],
+            [7.624584050027352, 51.9632391177457],
+            [7.6248948491196415, 51.96324639005354],
+            [7.6251938457155575, 51.963260934665726],
+            [7.625206587356388, 51.96339260581493],
+            [7.625197848345579, 51.963492222114525],
+            [7.625241543398147, 51.96358106889758],
+            [7.6254032150908415, 51.963632223026224],
+            [7.62560858183474, 51.963680684778325],
+            [7.6257964705583845, 51.96371030026731],
+            [7.625993098292952, 51.96371837721594],
+            [7.626172248005787, 51.96371837721594],
+            [7.626180987016596, 51.96368337709603],
+            [7.626189726027405, 51.963605299807625],
+            [7.626198465036737, 51.963546068670496],
+            [7.626285855140509, 51.96345183715488],
+            [7.626386353760495, 51.963354913103416],
+            [7.6265130694114305, 51.96324721946752],
+            [7.626805826260579, 51.96320683428709],
+            [7.626945650426251, 51.96316914141934],
+            [7.627041779540718, 51.963080293819786],
+            [7.627050518551528, 51.962994138403616],
+            [7.627015562509769, 51.96292952173249],
+            [7.6269937149842235, 51.96283259655209],
+            [7.626989345478819, 51.96274374828542],
+            [7.626989345478819, 51.96263605318063],
+            [7.627007356767308, 51.96250981619778],
+            [7.626996576699412, 51.96238028864178],
+            [7.626985796632425, 51.96224079700855],
+            [7.626969626531491, 51.96214115986257],
+            [7.62692111622755, 51.96207141372844],
+            [7.6268833859916185, 51.96202159499458],
+            [7.6268510457896355, 51.96198173996751],
+            [7.626683954744976, 51.96198173996751],
+            [7.626565374003121, 51.96199834623323],
+            [7.626441403227432, 51.9620083099895],
+            [7.626204241743835, 51.96202823749536],
+            [7.626037150699176, 51.96205812873811]
+          ],
+          color: '#33C9EB'
+        }
+      ],
+      searchResults: []
     };
-  },
-  computed: {
-    searchResults() {
-      return store.searchResults;
-    }
-  },
-  created: function () {
-    mutations.setBaseUrl('http://localhost:9000');
   },
   methods: {
     search: async function (val) {
-      var endpoint = `${store.baseUrl}/search`;
+      var endpoint = 'http://localhost:9000/search';
       var features = await this.searchPhotonAsync(endpoint, val);
 
-      mutations.setSearchResults(features);
+      this.searchResults = features;
     },
     onItemSelected: function (val) {
-      console.log(val);
-      const map = store.activeMap;
 
-      var marker = new mapboxgl.Marker().setLngLat(val.geometry.coordinates).addTo(map);
+      if(!val) {
+        return;
+      }
+      
+      // Get the last Marker ID, so we are not generating duplicates:
+      var lastMarkerId = this.markers
+        .map((x) => x.id)
+        .reduce((a, b) => {
+          return Math.max(a, b);
+        });
 
-      map.jumpTo({ center: val.geometry.coordinates });
-    },
-    data: function () {
-      return {};
+      // Push the new Marker: 
+      this.markers.push({
+        id: `${lastMarkerId + 1}`,
+        lnglat: val.geometry.coordinates
+      });
+
+      // And inform all registered parties, that we have a new Center:
+      mutations.setMbglCenter(val.geometry.coordinates);
     }
   }
 };

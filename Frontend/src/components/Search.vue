@@ -40,8 +40,8 @@ export default {
   },
   watch: {
     items: function (val, oldValue) {
-        this.results = val;
-        this.isLoading = false;
+      this.results = val;
+      this.isLoading = false;
     }
   },
   mounted() {
@@ -57,10 +57,12 @@ export default {
       this.isLoading = true;
     },
     setResult(result) {
-      this.search = result.caption;
-      this.isOpen = false;
+      if (!!result) {
+        this.search = result.caption;
+        this.isOpen = false;
 
-      this.$emit('selected', result.item);
+        this.$emit('selected', result.item);
+      }
     },
     onArrowDown(evt) {
       if (this.arrowCounter < this.results.length) {
