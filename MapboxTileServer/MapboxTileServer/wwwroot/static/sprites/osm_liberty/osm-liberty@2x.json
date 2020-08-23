@@ -573,6 +573,20 @@
     "x": 210,
     "y": 248
   },
+  "doctors_11": {
+    "height": 34,
+    "pixelRatio": 2,
+    "width": 34,
+    "x": 606,
+    "y": 416
+  },
+  "doctors_15": {
+    "height": 42,
+    "pixelRatio": 2,
+    "width": 42,
+    "x": 210,
+    "y": 248
+  },
   "dog_park_11": {
     "height": 34,
     "pixelRatio": 2,
@@ -1540,6 +1554,20 @@
     "y": 188
   },
   "toilet_15": {
+    "height": 42,
+    "pixelRatio": 2,
+    "width": 42,
+    "x": 210,
+    "y": 416
+  },
+  "toilets_11": {
+    "height": 34,
+    "pixelRatio": 2,
+    "width": 34,
+    "x": 708,
+    "y": 188
+  },
+  "toilets_15": {
     "height": 42,
     "pixelRatio": 2,
     "width": 42,
