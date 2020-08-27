@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Philipp Wagner. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
 namespace MapboxTileServer.GeoJson.Model
@@ -11,6 +12,6 @@ namespace MapboxTileServer.GeoJson.Model
         public string Type { get; private set; } = "Polygon";
 
         [JsonPropertyName("coordinates")]
-        public float[][] Coordinates { get; set; }
+        public List<float[][]> Coordinates { get; set; }
     }
 }

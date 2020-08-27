@@ -25,23 +25,24 @@ namespace MapboxTileServer.Controllers
 
         [HttpPost]
         [Route("/kml/toGeoJson")]
-        public async Task<IActionResult> KmlToGeoJson(IFormFile file, CancellationToken cancellationToken)
+        public async Task<IActionResult> KmlToGeoJson([FromForm(Name = "file")] IFormFile file, CancellationToken cancellationToken)
         {
             logger.LogDebug($"Uploaded a KML File ...");
 
-            if(file == null)
+            if (file == null)
             {
                 return BadRequest();
             }
 
             var xml = await file.ReadAsStringAsync(); ;
 
-            if(!kmlConverterService.ToGeoJson(xml, out string json))
+            if (!kmlConverterService.ToGeoJson(xml, out string json))
             {
                 return BadRequest();
             }
 
             return Content(json, "application/json");
         }
+
     }
 }

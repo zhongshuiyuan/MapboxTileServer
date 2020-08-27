@@ -3,13 +3,11 @@ const LNGLAT_MUENSTER = [7.628202, 51.961563];
 
 // A Marker in Münster City Center.
 const MARKER_MUENSTER_CITY_CENTER = {
-  id: '1',
   lnglat: LNGLAT_MUENSTER
 };
 
 // A walk around Münster Domplatz.
 const LINE_WALK_THROUGH_MUENSTER = {
-  id: '2',
   path: [
     [7.62566594560235, 51.96209250243865],
     [7.625469237316111, 51.962116744080475],

@@ -119,7 +119,19 @@ namespace MapboxTileServer.GeoJson
                 }
             }
 
-            return JsonSerializer.Serialize(features);
+            var result = new
+            {
+                type = "FeatureCollection",
+                features = features
+            };
+
+            var options = new JsonSerializerOptions
+            {
+                IgnoreNullValues = true,
+                WriteIndented = true
+            };
+
+            return JsonSerializer.Serialize(result, options: options);
         }
 
 
@@ -130,8 +142,9 @@ namespace MapboxTileServer.GeoJson
                 return null;
             }
 
-            return Regex.Replace(value, @"s", "")
-                .Split(",")
+            return value
+                .Split(new char[] { ' ', ','})
+                .Select(x => x.Trim())
                 .Select(x => float.Parse(x))
                 .ToArray();
         }
@@ -143,8 +156,9 @@ namespace MapboxTileServer.GeoJson
                 return null;
             }
 
-            return Regex.Replace(value, @"s", "")
+            return value
                 .Split(" ")
+                .Select(x => x.Trim())
                 .Select(x => GetCoordinates(x))
                 .ToArray();
         }
@@ -200,13 +214,35 @@ namespace MapboxTileServer.GeoJson
                         }
                         else if (geotype == XName.Get("Polygon", Kml.NamespaceName))
                         {
-                            var rings = geomNode.Elements(Kml + "LinearRing");
+                            var rings = new List<XElement>();
 
-                            var coordinates = new List<float[]>();
+                            // Get Inner Boundary Linear Ring:
+                            var innerBoundaryNode = geomNode.Element(Kml + "innerBoundaryIs");
+
+                            if(innerBoundaryNode != null)
+                            {
+                                var innerBoundaryRings = innerBoundaryNode.Elements(Kml + "LinearRing");
+
+                                rings.AddRange(innerBoundaryRings);
+                            }
+
+                            var outerBoundaryNode = geomNode.Element(Kml + "outerBoundaryIs");
+
+                            if (outerBoundaryNode != null)
+                            {
+                                var outerBoundaryRings = outerBoundaryNode.Elements(Kml + "LinearRing");
+
+                                rings.AddRange(outerBoundaryRings);
+                            }
+
+
+                            var coordinates = new List<float[][]>();
 
                             foreach (var ring in rings)
                             {
-                                var coordinatesOfRing = GetCoordinates(ring.Element(Kml + "coordinates").Value);
+                                var coordinatesNode = ring.Element(Kml + "coordinates")?.Value;
+
+                                var coordinatesOfRing = GetCoordinatesArray(coordinatesNode);
                                 if (coordinatesOfRing != null)
                                 {
                                     coordinates.Add(coordinatesOfRing);
@@ -215,7 +251,7 @@ namespace MapboxTileServer.GeoJson
 
                             if (coordinates.Count > 0)
                             {
-                                var polygon = new Polygon { Coordinates = coordinates.ToArray() };
+                                var polygon = new Polygon { Coordinates = coordinates };
 
                                 geometries.Add(polygon);
                             }
@@ -484,12 +520,12 @@ namespace MapboxTileServer.GeoJson
                 var fill = polyStyle.Element(Kml + "fill")?.Value;
                 var outline = polyStyle.Element(Kml + "outline")?.Value;
 
-                if (!string.IsNullOrWhiteSpace(fill))
+                if (!string.IsNullOrWhiteSpace(fill) && !properties.ContainsKey("fill-opacity"))
                 {
                     properties["fill-opacity"] = fill == "1" ? 1 : 0;
                 }
 
-                if (!string.IsNullOrWhiteSpace(outline))
+                if (!string.IsNullOrWhiteSpace(outline) && !properties.ContainsKey("stroke-opacity"))
                 {
                     properties["stroke-opacity"] = outline == "1" ? 1 : 0;
                 }
@@ -545,7 +581,7 @@ namespace MapboxTileServer.GeoJson
                 return new Feature
                 {
                     Id = id,
-                    Geometries = geomsAndTimes.GeometryNodes[0],
+                    Geometry = geomsAndTimes.GeometryNodes[0],
                     Properties = properties
                 };
             }
@@ -558,7 +594,7 @@ namespace MapboxTileServer.GeoJson
             return new Feature
             {
                 Id = id,
-                Geometries = geometryCollection,
+                Geometry = geometryCollection,
                 Properties = properties
             };
         }

@@ -14,8 +14,8 @@ namespace MapboxTileServer.GeoJson.Model
         [JsonPropertyName("id")]
         public string Id { get; set; }
 
-        [JsonPropertyName("geometries")]
-        public object Geometries { get; set; }
+        [JsonPropertyName("geometry")]
+        public object Geometry { get; set; }
 
         [JsonPropertyName("properties")]
         public Dictionary<string, object> Properties { get; set; }
