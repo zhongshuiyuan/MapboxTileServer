@@ -37,10 +37,10 @@ export default {
       type: 'line',
       source: `geojson_${this.id}`,
       paint: {
-        'line-width': 3,
+        'line-width': 1,
         // Use a get expression (https://docs.mapbox.com/mapbox-gl-js/style-spec/#expressions-get)
         // to set the line-color to a feature property value.
-        'line-color': ['case', ['has', 'color'], ['get', 'color'], '#088']      },
+        'line-color': ['case', ['has', 'stroke'], ['get', 'stroke'], '#088']      },
       filter: ['==', '$type', 'Polygon']
     });
 
