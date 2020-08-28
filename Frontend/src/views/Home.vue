@@ -9,7 +9,7 @@
         <MapboxLayer v-for="layer in layers" :id="layer.id" :key="layer.id" :map="map" :geojson="layer.geojson" />
       </template>
     </MapboxLoader>
-    <input ref="file" type="file" style="display: none;" @change="handleFileUpload" />
+    <input ref="file" type="file" style="display: none;" @change="handleFileUpload">
   </div>
 </template>
 
@@ -65,13 +65,13 @@ export default {
         geojson: result
       });
     },
-    search: async function (val) {
+    async search(val) {
       var endpoint = URL_PHOTON_SEARCH;
       var features = await searchPhotonAsync(endpoint, val);
 
       this.searchResults = features;
     },
-    onItemSelected: function (item) {
+    onItemSelected(item) {
       if (isNullOrUndefined(item)) {
         return;
       }
@@ -176,5 +176,9 @@ export default {
 
 #fab {
   z-index: 1;
+  position: fixed;
+  right: 25px;
+  bottom: 25px;
+  cursor: pointer;
 }
 </style>

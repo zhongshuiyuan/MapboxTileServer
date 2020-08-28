@@ -42,6 +42,12 @@ export default {
       }
     });
   },
-  render() {}
+  render() {
+    // Intentionally empty ...
+  },
+  beforeDestroy() {
+    this.map.removeLayer(`line_${this.id}`);
+    this.map.removeSource(`line_${this.id}`);
+  }
 };
 </script>

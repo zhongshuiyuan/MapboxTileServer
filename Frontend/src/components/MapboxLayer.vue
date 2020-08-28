@@ -38,7 +38,8 @@ export default {
       source: `geojson_${this.id}`,
       paint: {
         'line-width': 1,
-        'line-color': ['case', ['has', 'stroke'], ['get', 'stroke'], '#088']      },
+        'line-color': ['case', ['has', 'stroke'], ['get', 'stroke'], '#088']
+      },
       filter: ['==', '$type', 'Polygon']
     });
 
@@ -64,6 +65,16 @@ export default {
       filter: ['==', '$type', 'LineString']
     });
   },
-  render() {}
+  render() {
+    // Intentionally empty ...
+  },
+  beforeDestroy() {
+    this.map.removeLayer(`geojson_polygons_${this.id}`);
+    this.map.removeLayer(`geojson_polygons_lines_${this.id}`);
+    this.map.removeLayer(`geojson_points_${this.id}`);
+    this.map.removeLayer(`geojson_lines_${this.id}`);
+
+    this.map.removeSource(`geojson_${this.id}`);
+  }
 };
 </script>

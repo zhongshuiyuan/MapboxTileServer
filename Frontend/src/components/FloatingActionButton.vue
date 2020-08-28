@@ -19,16 +19,10 @@ export default {
   border-radius: 50%;
   box-shadow: 0 6px 10px 0 #666;
   transition: all 0.1s ease-in-out;
-
   font-size: 24px;
   color: white;
   text-align: center;
   line-height: 48px;
-
-  position: fixed;
-  right: 25px;
-  bottom: 25px;
-  cursor: pointer;
 }
 
 .fab:hover {

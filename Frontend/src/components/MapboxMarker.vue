@@ -12,14 +12,23 @@ export default {
       required: true
     }
   },
+  data() {
+    return {
+      markerLayer: null
+    }
+  },
   mounted() {
-    var marker = new mapboxgl.Marker()
+    this.markerLayer = new mapboxgl.Marker()
       .setLngLat(this.marker.lnglat)
       .setDraggable(this.marker.draggable)
       .setRotation(this.marker.rotation)
       .addTo(this.map);
   },
   render() {
+    // Intentionally empty ...
+  },
+  beforeDestroy() {
+    this.map.removeLayer(this.markerLayer);
   }
 };
 </script>
