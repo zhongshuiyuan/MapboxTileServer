@@ -88,8 +88,6 @@ export default {
         id: `Layer_${layer_id}`,
         ...layer
       });
-
-      console.log(this.layers);
     },
     addLine(line) {
       var line_id = this.getLastLineId() + 1;
