@@ -160,6 +160,7 @@ namespace MapboxTileServer.GeoJson
                 .Split(" ")
                 .Select(x => x.Trim())
                 .Select(x => GetCoordinates(x))
+                .Where(x => x != null)
                 .ToArray();
         }
 
