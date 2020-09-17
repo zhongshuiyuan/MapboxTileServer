@@ -23,6 +23,7 @@ export default {
       .setDraggable(this.marker.draggable)
       .setRotation(this.marker.rotation)
       .addTo(this.map);
+
   },
   render() {
     // Intentionally empty ...

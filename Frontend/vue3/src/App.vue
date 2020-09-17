@@ -1,19 +1,26 @@
 <template>
   <MapboxMap id="map" v-bind="mapOptions">
     <MapboxLine v-bind="lineData"></MapboxLine>
+    <MapboxMarker v-bind="markerData" @dragend="onMarkerDragEnd"></MapboxMarker>
   </MapboxMap>
+  <pre id="coordinates" class="coordinates"></pre>
 </template>
 <script>
 import "mapbox-gl/dist/mapbox-gl.css";
 import MapboxMap from "./components/MapboxMap";
 import MapboxLine from "./components/MapboxLine";
+import MapboxMarker from "./components/MapboxMarker";
 import { ref } from "vue";
-import { LINE_WALK_THROUGH_MUENSTER } from "./model/sample-data";
+import {
+  LINE_WALK_THROUGH_MUENSTER,
+  LNGLAT_MUENSTER,
+} from "./model/sample-data";
 
 export default {
   components: {
     MapboxMap,
     MapboxLine,
+    MapboxMarker,
   },
   setup() {
     const mapOptions = ref({
@@ -28,9 +35,22 @@ export default {
       ...LINE_WALK_THROUGH_MUENSTER,
     });
 
+    const markerData = ref({
+      id: 2,
+      lnglat: LNGLAT_MUENSTER,
+      draggable: true,
+      rotation: 0,
+    });
+
+    const onMarkerDragEnd = (event) => {
+      console.log(event);
+    };
+
     return {
       mapOptions,
       lineData,
+      markerData,
+      onMarkerDragEnd,
     };
   },
 };
@@ -47,5 +67,19 @@ body {
   bottom: 0;
   height: 100%;
   width: 100%;
+}
+
+.coordinates {
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  position: absolute;
+  bottom: 40px;
+  left: 10px;
+  padding: 5px 10px;
+  margin: 0;
+  font-size: 11px;
+  line-height: 18px;
+  border-radius: 3px;
+  display: none;
 }
 </style>
