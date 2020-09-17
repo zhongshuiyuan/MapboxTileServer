@@ -1,14 +1,19 @@
 <template>
-  <MapboxMap id="map" v-bind="mapOptions"></MapboxMap>
+  <MapboxMap id="map" v-bind="mapOptions">
+    <MapboxLine v-bind="lineData"></MapboxLine>
+  </MapboxMap>
 </template>
 <script>
 import "mapbox-gl/dist/mapbox-gl.css";
 import MapboxMap from "./components/MapboxMap";
+import MapboxLine from "./components/MapboxLine";
 import { ref } from "vue";
+import { LINE_WALK_THROUGH_MUENSTER } from "./model/sample-data";
 
 export default {
   components: {
     MapboxMap,
+    MapboxLine,
   },
   setup() {
     const mapOptions = ref({
@@ -18,8 +23,14 @@ export default {
       center: [7.628202, 51.961563],
     });
 
+    const lineData = ref({
+      id: 1,
+      ...LINE_WALK_THROUGH_MUENSTER,
+    });
+
     return {
       mapOptions,
+      lineData,
     };
   },
 };

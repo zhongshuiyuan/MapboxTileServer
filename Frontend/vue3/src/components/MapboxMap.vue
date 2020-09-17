@@ -6,7 +6,7 @@
 
 <script>
 import mapboxgl from "mapbox-gl";
-import { onMounted, onBeforeUnmount, ref, computed } from "vue";
+import { onMounted, onBeforeUnmount, ref, computed, provide } from "vue";
 import { mapboxMapOptions } from "../model/mapbox-map-options";
 
 export default {
@@ -46,6 +46,8 @@ export default {
     });
 
     const mapObject = computed(() => mapRef.value);
+
+    provide("mapObject", mapObject);
 
     return { root, ready, mapObject };
   },
