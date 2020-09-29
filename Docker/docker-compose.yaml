@@ -1,0 +1,13 @@
+version: '3.0'
+services:
+  backend:
+    container_name: mapbox_tileserver
+    build: 
+        context: ../MapboxTileServer
+        dockerfile: ../Docker/backend/Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Linux
+    volumes:
+      - G:/Tiles:/Tiles
+    ports:
+      - 9000:9000

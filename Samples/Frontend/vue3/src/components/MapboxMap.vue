@@ -24,6 +24,10 @@ export default {
       style: props.mapStyle,
     };
 
+    const mapObject = computed(() => mapRef.value);
+
+    provide("mapObject", mapObject);
+
     onMounted(async () => {
       mapRef.value = new mapboxgl.Map({
         container: root.value,
@@ -45,9 +49,17 @@ export default {
       }
     });
 
-    const mapObject = computed(() => mapRef.value);
+    watch(() => props.center, (ncenter, pcenter)) {
+      if(mapRef.value) {
+        mapRef.value.flyTo({center: ncenter});
+      }
+    };
 
-    provide("mapObject", mapObject);
+    watch(() => props.zoom, (nzoom, pzoom)) {
+      if(mapRef.value) {
+        mapRef.value.flyTo({zoom: nzoom});
+      }
+    };
 
     return { root, ready, mapObject };
   },

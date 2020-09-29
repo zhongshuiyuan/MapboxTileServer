@@ -17,7 +17,10 @@ namespace MapboxTileServer
             Host.CreateDefaultBuilder(args)
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
-                    webBuilder.UseStartup<Startup>();
+                    webBuilder.UseKestrel()
+                        .UseUrls("http://*:9000")
+                        .UseStartup<Startup>()
+                        .UseIISIntegration();
                 });
     }
 }

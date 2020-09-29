@@ -8,6 +8,7 @@ export default {
     ...mapboxMarkerOptions,
   },
   setup(props, context) {
+    
     const markerRef = ref(null);
 
     const mapObject = inject("mapObject");

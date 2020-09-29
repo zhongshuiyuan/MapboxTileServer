@@ -18,6 +18,10 @@ export default {
       color: props.color,
     };
 
+    watch(() => props.path, (nval, pval) => {
+      sourceRef.value.setData(nval);
+    });
+
     onMounted(() => {
       sourceRef.value = mapObject.value.addSource(`line_${options.id}`, {
         type: "geojson",
