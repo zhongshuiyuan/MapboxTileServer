@@ -1,13 +1,24 @@
 version: '3.0'
 services:
   mapbox_tileserver:
-    container_name: mapbox_tileserver
+    container_name: tileserver
     build: 
         context: ../MapboxTileServer
-        dockerfile: ../Docker/mapbox_tileserver/Dockerfile
+        dockerfile: ../Docker/tileserver/Dockerfile
     environment:
       - ASPNETCORE_ENVIRONMENT=Linux
     volumes:
       - G:/Tiles:/Tiles
+    links:
+      - photon
     ports:
       - 9000:9000
+  photon:
+    container_name: photon_server
+    build:
+        context: .
+        dockerfile: ./photon/Dockerfile
+    volumes:
+      - G:/Data/Photon:/Photon
+    ports:
+      - 2322:2322
